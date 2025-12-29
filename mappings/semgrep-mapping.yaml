@@ -22,3 +22,9 @@ policy-red-flag-5:
   languages: [yaml, bash]
   severity: ERROR
   pattern-regex: (?i)(password|token|secret).*(example|demo|sample)
+
+policy-red-flag-6:
+  languages: [yaml, bash]
+  severity: ERROR
+  pattern-regex: (?i)(?:^|[^A-Za-z0-9+/=])[A-Za-z0-9+/]{40,}={0,2}(?:$|[^A-Za-z0-9+/=])
+
