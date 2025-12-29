@@ -1,11 +1,12 @@
 import json
 import os
 import logging
+import hashlib
 from github import Github
 from pathlib import Path
 
 # --------------------------------------------------
-# Logger setup
+# Logger
 # --------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
@@ -14,10 +15,21 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --------------------------------------------------
+# Constants
+# --------------------------------------------------
+MARKER = "<!-- SECURE-POLICY-AGENT -->"
+
+# --------------------------------------------------
 # Paths
 # --------------------------------------------------
 WORKSPACE = Path(os.environ.get("GITHUB_WORKSPACE", ".")).resolve()
 RESULTS = WORKSPACE / "semgrep-results.json"
+
+# --------------------------------------------------
+# Helpers
+# --------------------------------------------------
+def compute_hash(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 # --------------------------------------------------
 # Main
@@ -26,16 +38,14 @@ def main():
     logger.info("Starting PR commenter")
 
     if not RESULTS.exists():
-        logger.info("No semgrep results found – skipping comment")
+        logger.info("No semgrep results found – skipping")
         return
 
     data = json.loads(RESULTS.read_text(encoding="utf-8"))
     findings = data.get("results", [])
 
-    logger.info("Total raw findings: %d", len(findings))
-
     if not findings:
-        logger.info("No violations detected")
+        logger.info("No violations detected – skipping")
         return
 
     if not os.getenv("PR_NUMBER"):
@@ -46,53 +56,71 @@ def main():
     repo = gh.get_repo(os.environ["GITHUB_REPOSITORY"])
     pr = repo.get_pull(int(os.environ["PR_NUMBER"]))
 
-    body = "🚨 **Security policy violations detected**\n\n"
-
+    # --------------------------------------------------
+    # Deduplicate findings using Semgrep fingerprint
+    # --------------------------------------------------
     seen = set()
-    added = 0
+    entries = []
 
     for f in findings:
-        rule_id = f.get("check_id")
-        path = f.get("path")
-        line = f.get("start", {}).get("line")
-        message = f.get("extra", {}).get("message")
-
-        # ✅ CORRECT deduplication key (Semgrep-native)
         fingerprint = f.get("fingerprint")
-
-        # Safety fallback (very rare)
         if not fingerprint:
-            fingerprint = f"{rule_id}:{path}:{line}"
+            fingerprint = f"{f.get('check_id')}:{f.get('path')}:{f.get('start', {}).get('line')}"
 
         if fingerprint in seen:
-            logger.info(
-                "Skipping duplicate Semgrep finding (fingerprint=%s)",
-                fingerprint,
-            )
             continue
 
         seen.add(fingerprint)
-        added += 1
 
-        logger.info(
-            "Adding finding: %s (%s:%s)",
-            rule_id,
-            path,
-            line,
+        entries.append(
+            f"- **{f['check_id']}**\n"
+            f"  > {f['extra']['message']}\n"
+            f"  File: `{f['path']}:{f['start']['line']}`\n"
         )
 
-        body += (
-            f"- **{rule_id}**\n"
-            f"  > {message}\n"
-            f"  File: `{path}:{line}`\n\n"
-        )
-
-    if added == 0:
-        logger.info("All findings were duplicates – no comment created")
+    if not entries:
+        logger.info("All findings were duplicates – skipping")
         return
 
-    pr.create_issue_comment(body)
-    logger.info("PR comment created with %d unique findings", added)
+    core_body = "\n".join(entries)
+    content_hash = compute_hash(core_body)
+
+    body = (
+        f"{MARKER}\n"
+        f"🚨 **Security policy violations detected**\n\n"
+        f"{core_body}\n"
+        f"<!-- HASH:{content_hash} -->"
+    )
+
+    # --------------------------------------------------
+    # Find existing comment
+    # --------------------------------------------------
+    existing_comment = None
+    existing_hash = None
+
+    for comment in pr.get_issue_comments():
+        if MARKER in comment.body:
+            existing_comment = comment
+            for line in comment.body.splitlines():
+                if line.startswith("<!-- HASH:"):
+                    existing_hash = line.replace("<!-- HASH:", "").replace(" -->", "")
+            break
+
+    # --------------------------------------------------
+    # Idempotent decision
+    # --------------------------------------------------
+    if existing_comment and existing_hash == content_hash:
+        logger.info("No change in violations – not updating comment")
+        return
+
+    if existing_comment:
+        logger.info("Updating existing security policy comment")
+        existing_comment.edit(body)
+    else:
+        logger.info("Creating new security policy comment")
+        pr.create_issue_comment(body)
+
+    logger.info("PR comment operation completed")
 
 # --------------------------------------------------
 # Entrypoint
