@@ -25,55 +25,54 @@ RESULTS = WORKSPACE / "semgrep-results.json"
 def main():
     logger.info("Starting PR commenter")
 
-    # Environment diagnostics
-    logger.info("Environment variables:")
-    for key in ["GITHUB_TOKEN", "GITHUB_REPOSITORY", "PR_NUMBER", "GITHUB_EVENT_NAME"]:
-        value = os.getenv(key)
-        logger.info("  %s = %s", key, "SET" if value else "MISSING")
-
     if not RESULTS.exists():
-        logger.warning("semgrep-results.json not found at %s", RESULTS)
-        logger.info("Nothing to comment on")
+        logger.info("No semgrep results found – skipping comment")
         return
 
-    logger.info("Reading Semgrep results from %s", RESULTS)
     data = json.loads(RESULTS.read_text(encoding="utf-8"))
     findings = data.get("results", [])
 
-    logger.info("Total findings: %d", len(findings))
+    logger.info("Total raw findings: %d", len(findings))
 
     if not findings:
-        logger.info("No policy violations detected")
+        logger.info("No violations detected")
         return
 
     if not os.getenv("PR_NUMBER"):
-        logger.error("PR_NUMBER is missing – cannot post PR comment")
+        logger.error("PR_NUMBER missing – cannot comment")
         return
-
-    if not os.getenv("GITHUB_TOKEN"):
-        logger.error("GITHUB_TOKEN is missing – cannot authenticate to GitHub")
-        return
-
-    repo_name = os.environ["GITHUB_REPOSITORY"]
-    pr_number = int(os.environ["PR_NUMBER"])
-
-    logger.info("Target repository: %s", repo_name)
-    logger.info("Target PR number : %d", pr_number)
 
     gh = Github(os.environ["GITHUB_TOKEN"])
-    repo = gh.get_repo(repo_name)
-    pr = repo.get_pull(pr_number)
+    repo = gh.get_repo(os.environ["GITHUB_REPOSITORY"])
+    pr = repo.get_pull(int(os.environ["PR_NUMBER"]))
 
     body = "🚨 **Security policy violations detected**\n\n"
 
+    seen = set()
+    added = 0
+
     for f in findings:
         rule_id = f.get("check_id")
-        message = f.get("extra", {}).get("message")
         path = f.get("path")
         line = f.get("start", {}).get("line")
+        message = f.get("extra", {}).get("message")
+
+        dedup_key = (rule_id, path, line)
+
+        if dedup_key in seen:
+            logger.info(
+                "Skipping duplicate finding: %s (%s:%s)",
+                rule_id,
+                path,
+                line,
+            )
+            continue
+
+        seen.add(dedup_key)
+        added += 1
 
         logger.info(
-            "Adding violation to comment: %s (%s:%s)",
+            "Adding finding: %s (%s:%s)",
             rule_id,
             path,
             line,
@@ -85,8 +84,12 @@ def main():
             f"  File: `{path}:{line}`\n\n"
         )
 
+    if added == 0:
+        logger.info("All findings were duplicates – no comment created")
+        return
+
     pr.create_issue_comment(body)
-    logger.info("PR comment successfully created")
+    logger.info("PR comment created with %d unique findings", added)
 
 # --------------------------------------------------
 # Entrypoint
