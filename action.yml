@@ -27,17 +27,32 @@ runs:
       shell: bash
       run: python scripts/policy_mapper.py
 
-    - name: Run Semgrep
+    # - name: Run Semgrep
+    #   uses: returntocorp/semgrep-action@v1
+    #   with:
+    #     config: semgrep.yaml
+    #     baseline-ref: origin/${{ github.base_ref }}
+    #     json: true
+    #     output: semgrep-results.json
+
+    # - name: Comment on PR
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #     PR_NUMBER: ${{ github.event.pull_request.number }}
+    #   run: python scripts/pr_commenter.py
+    #   shell: bash
+
+    - name: Run Semgrep (PR diff only)
       uses: returntocorp/semgrep-action@v1
       with:
-        config: semgrep.yaml
+        config: security-policies/semgrep.yaml
         baseline-ref: origin/${{ github.base_ref }}
         json: true
         output: semgrep-results.json
 
     - name: Comment on PR
+      shell: bash
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ github.token }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
       run: python scripts/pr_commenter.py
-      shell: bash
