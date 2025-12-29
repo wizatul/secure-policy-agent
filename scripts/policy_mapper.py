@@ -2,7 +2,20 @@ import json
 import yaml
 from pathlib import Path
 import os
+import logging
 
+# --------------------------------------------------
+# Logger setup
+# --------------------------------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s [POLICY_MAPPER] %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+# --------------------------------------------------
+# Paths
+# --------------------------------------------------
 ACTION_PATH = Path(os.environ.get("GITHUB_ACTION_PATH", ".")).resolve()
 WORKSPACE = Path(os.environ.get("GITHUB_WORKSPACE", ".")).resolve()
 
@@ -10,47 +23,92 @@ POLICY_FILE = WORKSPACE / "security-policies" / "policy.json"
 MAPPING_FILE = ACTION_PATH / "mappings" / "semgrep-mapping.yaml"
 OUTPUT_FILE = WORKSPACE / "security-policies" / "semgrep.yaml"
 
-
 VALID_SEVERITIES = {"ERROR", "WARNING", "INFO"}
 
+# --------------------------------------------------
+# Main
+# --------------------------------------------------
 def main():
+    logger.info("Starting policy → Semgrep mapping")
+    logger.info("Policy file   : %s", POLICY_FILE)
+    logger.info("Mapping file  : %s", MAPPING_FILE)
+    logger.info("Output file   : %s", OUTPUT_FILE)
+
     if not POLICY_FILE.exists():
+        logger.error("policy.json not found")
         raise RuntimeError("policy.json not found")
 
     if not MAPPING_FILE.exists():
+        logger.error("semgrep-mapping.yaml not found")
         raise RuntimeError("semgrep-mapping.yaml not found")
-    
+
     policy = json.loads(POLICY_FILE.read_text(encoding="utf-8"))
     mappings = yaml.safe_load(MAPPING_FILE.read_text(encoding="utf-8"))
+
+    policy_ids = [rf["id"] for rf in policy.get("red_flags", [])]
+    mapping_ids = list(mappings.keys())
+
+    logger.info("Policy rules discovered:")
+    for pid in policy_ids:
+        logger.info("  - %s", pid)
+
+    logger.info("Available Semgrep mappings:")
+    for mid in mapping_ids:
+        logger.info("  - %s", mid)
 
     rules = []
 
     for red_flag in policy["red_flags"]:
         rule_id = red_flag["id"]
+        rule_text = red_flag["text"]
+
+        logger.info("Mapping policy rule %s", rule_id)
 
         if rule_id not in mappings:
-            raise ValueError(f"No Semgrep mapping found for rule id: {rule_id}")
+            logger.error("Missing Semgrep mapping for rule: %s", rule_id)
+            logger.error("Policy text: %s", rule_text)
+            logger.error(
+                "Policy rule exists but has no enforcement. "
+                "Add a Semgrep mapping or remove it from 'Red flags'."
+            )
+            raise ValueError(
+                f"No Semgrep mapping found for rule id: {rule_id}"
+            )
 
         mapping = mappings[rule_id]
 
-        # 🔒 Enforce Semgrep schema
         severity = mapping.get("severity")
         if severity not in VALID_SEVERITIES:
+            logger.error(
+                "Invalid severity for rule %s: %s",
+                rule_id,
+                severity,
+            )
             raise ValueError(
                 f"Rule {rule_id} has invalid or missing severity: {severity}"
             )
 
         rule = {
             "id": rule_id,
-            "message": red_flag["text"],
+            "message": rule_text,
             "languages": mapping["languages"],
             "severity": severity,
         }
 
         # Copy detection logic explicitly
+        copied_keys = []
         for key in ("pattern", "pattern-regex", "patterns"):
             if key in mapping:
                 rule[key] = mapping[key]
+                copied_keys.append(key)
+
+        logger.info(
+            "Mapped %s → severity=%s, languages=%s, detectors=%s",
+            rule_id,
+            severity,
+            mapping["languages"],
+            copied_keys,
+        )
 
         rules.append(rule)
 
@@ -60,7 +118,13 @@ def main():
         encoding="utf-8",
     )
 
-    print(f"[OK] generated {len(rules)} Semgrep rules")
+    logger.info(
+        "Semgrep rules generated successfully (%d rules)",
+        len(rules),
+    )
 
+# --------------------------------------------------
+# Entrypoint
+# --------------------------------------------------
 if __name__ == "__main__":
     main()
