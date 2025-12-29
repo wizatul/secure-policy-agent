@@ -33,6 +33,7 @@ runs:
 
     - name: Run Semgrep (PR diff only)
       uses: returntocorp/semgrep-action@v1
+      continue-on-error: true
       with:
         config: security-policies/semgrep.yaml
         baseline-ref: origin/${{ github.base_ref }}
@@ -45,3 +46,9 @@ runs:
         GITHUB_TOKEN: ${{ github.token }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
       run: python "$GITHUB_ACTION_PATH/scripts/pr_commenter.py"
+
+    - name: Fail job if Semgrep found violations
+      shell: bash
+      run: |
+        jq -e '.results | length == 0' semgrep-results.json
+
