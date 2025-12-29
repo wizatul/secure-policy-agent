@@ -31,6 +31,7 @@ runs:
       run: |
         echo "::group::Merge security policies"
         python "$GITHUB_ACTION_PATH/scripts/policy_merger.py"
+        cat "$GITHUB_WORKSPACE/merged-copilot-policy.md"
         echo "::endgroup::"
 
     - name: Extract policy
