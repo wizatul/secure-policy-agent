@@ -57,18 +57,21 @@ def main():
         line = f.get("start", {}).get("line")
         message = f.get("extra", {}).get("message")
 
-        dedup_key = (rule_id, path, line)
+        # ✅ CORRECT deduplication key (Semgrep-native)
+        fingerprint = f.get("fingerprint")
 
-        if dedup_key in seen:
+        # Safety fallback (very rare)
+        if not fingerprint:
+            fingerprint = f"{rule_id}:{path}:{line}"
+
+        if fingerprint in seen:
             logger.info(
-                "Skipping duplicate finding: %s (%s:%s)",
-                rule_id,
-                path,
-                line,
+                "Skipping duplicate Semgrep finding (fingerprint=%s)",
+                fingerprint,
             )
             continue
 
-        seen.add(dedup_key)
+        seen.add(fingerprint)
         added += 1
 
         logger.info(
