@@ -1,5 +1,5 @@
 # ==================================================
-# General Secrets & Credentials
+# Genral Secutiy Findings
 # ==================================================
 
 policy-red-flag-1:
@@ -18,7 +18,7 @@ policy-red-flag-3:
   pattern-regex: (?i)(secret|token|password).*(env|ci|pipeline)
 
 # ==================================================
-# Database Security (SAP) – CONFIG FILES (YAML ONLY)
+# HANA Database Security – CONFIG FILES (YAML ONLY)
 # ==================================================
 
 policy-red-flag-4:
@@ -66,7 +66,7 @@ policy-red-flag-11:
   pattern-regex: (?i)(md5|sha1)
 
 # ==================================================
-# Web / Dispatcher (YAML ONLY)
+# Web Dispatcher (YAML ONLY)
 # ==================================================
 
 policy-red-flag-12:

@@ -13,7 +13,7 @@ These rules align with:
 
 ## Red flags Copilot must avoid generating
 
-### Secutiy Findings
+### Genral Secutiy Findings
 - Hardcoded passwords, tokens, API keys, or credentials in code, scripts, or configuration files
 - Base64-encoded secrets embedded inline (credentials, tokens, private keys)
 - Secrets committed into YAML, JSON, ENV, or CI/CD configuration files
