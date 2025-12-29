@@ -11,7 +11,7 @@ These rules align with:
 
 ---
 
-## 🔴 Red flags Copilot must avoid generating
+## Red flags Copilot must avoid generating
 
 ### 🔐 General Secrets & Credentials
 - Hardcoded passwords, tokens, API keys, or credentials in code, scripts, or configuration files
