@@ -1,0 +1,43 @@
+name: Secure Policy Agent
+description: Centralized policy enforcement
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - run: pip install semgrep pyyaml PyGithub
+      shell: bash
+
+    - name:  merge security policies
+      shell: bash
+      run: python scripts/policy_merger.py  
+
+    - name: Extract policy
+      shell: bash
+      run: python scripts/policy_extractor.py
+
+    - name: Compile Semgrep rules
+      shell: bash
+      run: python scripts/policy_mapper.py
+
+    - name: Run Semgrep
+      uses: returntocorp/semgrep-action@v1
+      with:
+        config: semgrep.yaml
+        baseline-ref: origin/${{ github.base_ref }}
+        json: true
+        output: semgrep-results.json
+
+    - name: Comment on PR
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: python scripts/pr_commenter.py
+      shell: bash

@@ -1,0 +1,24 @@
+policy-red-flag-1:
+  languages: [yaml, bash]
+  severity: ERROR
+  pattern-regex: (?i)(password|token|secret)\s*[:=]\s*["'][^"']+["']
+
+policy-red-flag-2:
+  languages: [yaml, bash]
+  severity: ERROR
+  pattern-regex: (AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|xox[baprs]-[A-Za-z0-9-]+|eyJhbGciOi)
+
+policy-red-flag-3:
+  languages: [yaml, bash]
+  severity: ERROR
+  pattern-regex: (?i)[A-Za-z0-9+/]{40,}={0,2}
+
+policy-red-flag-4:
+  languages: [yaml, bash]
+  severity: ERROR
+  pattern-regex: -----BEGIN (RSA|EC|DSA|OPENSSH) PRIVATE KEY-----
+
+policy-red-flag-5:
+  languages: [yaml, bash]
+  severity: ERROR
+  pattern-regex: (?i)(password|token|secret).*(example|demo|sample)
