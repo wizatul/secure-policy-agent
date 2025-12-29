@@ -22,22 +22,22 @@ policy-red-flag-3:
 # ==================================================
 
 policy-red-flag-4:
-  languages: [yaml, generic]
+  languages: [yaml, regex]
   severity: ERROR
   pattern-regex: (?i)(db_|database_)?(user|username|password)\s*[:=]\s*["'][^"']+["']
 
 policy-red-flag-5:
-  languages: [yaml, generic]
+  languages: [yaml, regex]
   severity: ERROR
   pattern-regex: (?i)(jdbc|database).*(ssl=false|tls=false)
 
 policy-red-flag-6:
-  languages: [yaml, generic]
+  languages: [yaml, regex]
   severity: ERROR
   pattern-regex: (?i)(select|insert|update|delete).*(\\+|concat)
 
 policy-red-flag-7:
-  languages: [yaml, generic]
+  languages: [yaml, regex]
   severity: WARNING
   pattern-regex: (?i)(db_|database_)?user\s*[:=]\s*(root|sys|dba)
 
@@ -70,21 +70,21 @@ policy-red-flag-11:
 # ==================================================
 
 policy-red-flag-12:
-  languages: [yaml, generic]
+  languages: [yaml, regex]
   severity: ERROR
   pattern-regex: (?i)(http://|PROT=HTTP)
 
 policy-red-flag-13:
-  languages: [generic]
+  languages: [regex]
   severity: ERROR
   pattern-regex: (?i)(ssl_verify\s*=\s*false|verify_client\s*=\s*false)
 
 policy-red-flag-14:
-  languages: [yaml, generic]
+  languages: [yaml, regex]
   severity: ERROR
   pattern-regex: (?i)(password|passwd|pwd)\s*=\s*.+
 
 policy-red-flag-15:
-  languages: [generic]
+  languages: [regex]
   severity: WARNING
   pattern-regex: (?i)backend\s*=\s*\*
