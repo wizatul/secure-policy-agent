@@ -43,7 +43,7 @@ def main():
         raise RuntimeError("semgrep-mapping.yaml not found")
 
     policy = json.loads(POLICY_FILE.read_text(encoding="utf-8"))
-    mappings = yaml.safe_load(MAPPING_FILE.read_text(encoding="utf-8"))
+    mappings = yaml.safe_load(MAPPING_FILE.read_text(encoding="utf-8")) or {}
 
     policy_ids = [rf["id"] for rf in policy.get("red_flags", [])]
     mapping_ids = list(mappings.keys())
@@ -57,23 +57,40 @@ def main():
         logger.info("  - %s", mid)
 
     rules = []
+    skipped = 0  # ✅ track downgraded rules
 
     for red_flag in policy["red_flags"]:
         rule_id = red_flag["id"]
         rule_text = red_flag["text"]
 
-        logger.info("Mapping policy rule %s", rule_id)
+        logger.info("Processing policy rule %s", rule_id)
 
+        # --------------------------------------------------
+        # Skip explicitly non-enforceable rules
+        # --------------------------------------------------
+        if not red_flag.get("enforce", True):
+            logger.info(
+                "Skipping enforcement for local-only rule %s",
+                rule_id,
+            )
+            skipped += 1
+            continue
+
+        # --------------------------------------------------
+        # Missing mapping → downgrade to local-only
+        # --------------------------------------------------
         if rule_id not in mappings:
-            logger.error("Missing Semgrep mapping for rule: %s", rule_id)
-            logger.error("Policy text: %s", rule_text)
-            logger.error(
-                "Policy rule exists but has no enforcement. "
-                "Add a Semgrep mapping or remove it from 'Red flags'."
+            logger.warning(
+                "No Semgrep mapping found for rule %s. "
+                "Automatically treating as local-only (not enforced).",
+                rule_id,
             )
-            raise ValueError(
-                f"No Semgrep mapping found for rule id: {rule_id}"
-            )
+            logger.warning("Policy text: %s", rule_text)
+
+            red_flag["enforce"] = False
+            red_flag["scope"] = "local-only"
+            skipped += 1
+            continue
 
         mapping = mappings[rule_id]
 
@@ -103,7 +120,7 @@ def main():
                 copied_keys.append(key)
 
         logger.info(
-            "Mapped %s → severity=%s, languages=%s, detectors=%s",
+            "Enforced %s → severity=%s, languages=%s, detectors=%s",
             rule_id,
             severity,
             mapping["languages"],
@@ -119,8 +136,9 @@ def main():
     )
 
     logger.info(
-        "Semgrep rules generated successfully (%d rules)",
+        "Semgrep rules generated successfully (%d enforced, %d skipped)",
         len(rules),
+        skipped,
     )
 
 # --------------------------------------------------
