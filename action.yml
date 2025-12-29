@@ -1,6 +1,11 @@
 name: Secure Policy Agent
 description: Centralized policy enforcement
 
+inputs:
+  pr_number:
+    description: Pull request number
+    required: true
+
 runs:
   using: composite
   steps:
@@ -32,23 +37,45 @@ runs:
       run: python "$GITHUB_ACTION_PATH/scripts/policy_mapper.py"
 
     - name: Run Semgrep (PR diff only)
-      uses: returntocorp/semgrep-action@v1
+      shell: bash
       continue-on-error: true
-      with:
-        config: security-policies/semgrep.yaml
-        baseline-ref: origin/${{ github.base_ref }}
-        json: true
-        output: semgrep-results.json
+      run: |
+        semgrep scan \
+          --config security-policies/semgrep.yaml \
+          --baseline-commit origin/${{ github.base_ref }} \
+          --json > semgrep-results.json
 
     - name: Comment on PR
       shell: bash
       env:
         GITHUB_TOKEN: ${{ github.token }}
-        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_NUMBER: ${{ inputs.pr_number }}
       run: python "$GITHUB_ACTION_PATH/scripts/pr_commenter.py"
 
     - name: Fail job if Semgrep found violations
       shell: bash
       run: |
         jq -e '.results | length == 0' semgrep-results.json
+
+
+    # - name: Run Semgrep (PR diff only)
+    #   uses: returntocorp/semgrep-action@v1
+    #   continue-on-error: true
+    #   with:
+    #     config: security-policies/semgrep.yaml
+    #     baseline-ref: origin/${{ github.base_ref }}
+    #     json: true
+    #     output: semgrep-results.json
+
+    # - name: Comment on PR
+    #   shell: bash
+    #   env:
+    #     GITHUB_TOKEN: ${{ github.token }}
+    #     PR_NUMBER: ${{ github.event.pull_request.number }}
+    #   run: python "$GITHUB_ACTION_PATH/scripts/pr_commenter.py"
+
+    # - name: Fail job if Semgrep found violations
+    #   shell: bash
+    #   run: |
+    #     jq -e '.results | length == 0' semgrep-results.json
 
