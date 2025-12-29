@@ -3,17 +3,17 @@
 # ==================================================
 
 policy-red-flag-1:
-  languages: [yaml, json, bash, php]
+  languages: [yaml, json, bash]
   severity: ERROR
   pattern-regex: (?i)(password|passwd|pwd|token|secret|apikey)\s*[:=]\s*["'][^"']+["']
 
 policy-red-flag-2:
-  languages: [yaml, json, bash, php]
+  languages: [yaml, json, bash]
   severity: ERROR
   pattern-regex: (?i)[A-Za-z0-9+/]{40,}={0,2}
 
 policy-red-flag-3:
-  languages: [yaml, json, bash, php]
+  languages: [yaml, json, bash]
   severity: ERROR
   pattern-regex: (?i)(secret|token|password).*(env|ci|pipeline)
 
@@ -22,22 +22,22 @@ policy-red-flag-3:
 # ==================================================
 
 policy-red-flag-4:
-  languages: [yaml, properties, conf]
+  languages: [yaml, generic]
   severity: ERROR
   pattern-regex: (?i)(db_|database_)?(user|username|password)\s*[:=]\s*["'][^"']+["']
 
 policy-red-flag-5:
-  languages: [yaml, properties, conf]
+  languages: [yaml, generic]
   severity: ERROR
   pattern-regex: (?i)(jdbc|database).*(ssl=false|tls=false)
 
 policy-red-flag-6:
-  languages: [yaml, properties, conf]
+  languages: [yaml, generic]
   severity: ERROR
   pattern-regex: (?i)(select|insert|update|delete).*(\\+|concat)
 
 policy-red-flag-7:
-  languages: [yaml, properties]
+  languages: [yaml, generic]
   severity: WARNING
   pattern-regex: (?i)(db_|database_)?user\s*[:=]\s*(root|sys|dba)
 
@@ -70,21 +70,21 @@ policy-red-flag-11:
 # ==================================================
 
 policy-red-flag-12:
-  languages: [conf, properties, yaml]
+  languages: [yaml, generic]
   severity: ERROR
   pattern-regex: (?i)(http://|PROT=HTTP)
 
 policy-red-flag-13:
-  languages: [conf, properties]
+  languages: [generic]
   severity: ERROR
   pattern-regex: (?i)(ssl_verify\s*=\s*false|verify_client\s*=\s*false)
 
 policy-red-flag-14:
-  languages: [conf, properties, yaml]
+  languages: [yaml, generic]
   severity: ERROR
   pattern-regex: (?i)(password|passwd|pwd)\s*=\s*.+
 
 policy-red-flag-15:
-  languages: [conf]
+  languages: [generic]
   severity: WARNING
   pattern-regex: (?i)backend\s*=\s*\*
