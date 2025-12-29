@@ -3,7 +3,7 @@
 # ==================================================
 
 policy-red-flag-1:
-  languages: [yaml, json, bash, php, java]
+  languages: [yaml, json, bash, php]
   severity: ERROR
   pattern-regex: (?i)(password|passwd|pwd|token|secret|apikey)\s*[:=]\s*["'][^"']+["']
 
@@ -13,16 +13,16 @@ policy-red-flag-2:
   pattern-regex: (?i)[A-Za-z0-9+/]{40,}={0,2}
 
 policy-red-flag-3:
-  languages: [yaml, json, bash]
+  languages: [yaml, json, bash, php]
   severity: ERROR
   pattern-regex: (?i)(secret|token|password).*(env|ci|pipeline)
 
 # ==================================================
-# HANA Database Security (SAP)
+# Database Security (SAP)
 # ==================================================
 
 policy-red-flag-4:
-  languages: [yaml, properties, php, java]
+  languages: [yaml, properties, conf]
   severity: ERROR
   pattern-regex: (?i)(db_|database_)?(user|username|password)\s*[:=]\s*["'][^"']+["']
 
@@ -32,9 +32,9 @@ policy-red-flag-5:
   pattern-regex: (?i)(jdbc|database).*(ssl=false|tls=false)
 
 policy-red-flag-6:
-  languages: [php, java]
+  languages: [yaml, properties, conf]
   severity: ERROR
-  pattern-regex: (?i)(SELECT|INSERT|UPDATE|DELETE).*\\+.*
+  pattern-regex: (?i)(select|insert|update|delete).*(\\+|concat)
 
 policy-red-flag-7:
   languages: [yaml, properties]
@@ -42,7 +42,7 @@ policy-red-flag-7:
   pattern-regex: (?i)(db_|database_)?user\s*[:=]\s*(root|sys|dba)
 
 # ==================================================
-# Operating System 
+# Operating System Security
 # ==================================================
 
 policy-red-flag-8:
@@ -61,12 +61,12 @@ policy-red-flag-10:
   pattern-regex: (?i)(setenforce\s+0|apparmor_parser\s+-R)
 
 policy-red-flag-11:
-  languages: [bash, php, java]
+  languages: [bash]
   severity: ERROR
-  pattern-regex: (?i)(md5|sha1)\s*\(
+  pattern-regex: (?i)(md5|sha1)
 
 # ==================================================
-# SAP Web Dispatcher
+# SAP Web Dispatcher / Web Tier
 # ==================================================
 
 policy-red-flag-12:

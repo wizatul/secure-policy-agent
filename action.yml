@@ -48,6 +48,11 @@ runs:
         python "$GITHUB_ACTION_PATH/scripts/policy_mapper.py"
         echo "::endgroup::"
 
+    - name: Validate Semgrep rules
+      shell: bash
+      run: |
+        semgrep scan --config security-policies/semgrep.yaml --validate
+
     - name: Run Semgrep (PR diff only)
       shell: bash
       continue-on-error: true
