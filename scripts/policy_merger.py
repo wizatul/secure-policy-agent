@@ -4,7 +4,7 @@ import os
 ACTION_PATH = Path(os.environ.get("GITHUB_ACTION_PATH", ".")).resolve()
 WORKSPACE = Path(os.environ.get("GITHUB_WORKSPACE", ".")).resolve()
 
-CENTRAL_POLICY = ACTION_PATH / "copilot-instructions.md"
+CENTRAL_POLICY = ACTION_PATH / "policy/copilot-instructions-global.md"
 REPO_POLICY = WORKSPACE / "copilot-instructions.md"
 MERGED_POLICY = WORKSPACE / "merged-copilot-policy.md"
 
